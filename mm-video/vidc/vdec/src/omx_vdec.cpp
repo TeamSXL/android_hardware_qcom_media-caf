@@ -8154,7 +8154,7 @@ OMX_ERRORTYPE omx_vdec::get_buffer_req(vdec_allocatorproperty *buffer_prop)
         buffer_prop->buffer_type, buffer_prop->mincount,
         buffer_prop->maxcount, buffer_prop->actualcount,
         buffer_prop->buffer_size, buffer_prop->alignment,
-        buffer_prop->buf_poolid, buffer_prop->meta_buffer_size);
+        buffer_prop->buf_poolid, buffer_prop->buffer_size);
     buf_size = buffer_prop->buffer_size;
 
     ioctl_msg.in = NULL;
@@ -8225,7 +8225,7 @@ OMX_ERRORTYPE omx_vdec::set_buffer_req(vdec_allocatorproperty *buffer_prop)
         buffer_prop->buffer_type, buffer_prop->mincount,
         buffer_prop->maxcount, buffer_prop->actualcount,
         buffer_prop->buffer_size, buffer_prop->alignment,
-        buffer_prop->buf_poolid, buffer_prop->meta_buffer_size);
+        buffer_prop->buf_poolid, buffer_prop->buffer_size);
     ioctl_msg.in = buffer_prop;
     ioctl_msg.out = NULL;
     if (ioctl (drv_ctx.video_driver_fd, VDEC_IOCTL_SET_BUFFER_REQ,
@@ -8670,14 +8670,14 @@ void omx_vdec::handle_extradata_secure(OMX_BUFFERHEADERTYPE *p_buf_hdr)
 
   p_extra = (OMX_OTHER_EXTRADATATYPE *)
            ((unsigned)(meta_buffer_virtual +
-           index * drv_ctx.op_buf.meta_buffer_size + 3)&(~3));
+           index * drv_ctx.op_buf.buffer_size + 3)&(~3));
 
   //mapping of ouput buffer to the corresponding meta buffer
   output_respbuf = (struct vdec_output_frameinfo *)\
                              p_buf_hdr->pOutputPortPrivate;
   output_respbuf->metadata_info.metabufaddr = (OMX_U8 *)p_extra;
   output_respbuf->metadata_info.size =
-                     drv_ctx.op_buf.meta_buffer_size;
+                     drv_ctx.op_buf.buffer_size;
 
   meta_buffer_virtual = (OMX_U8 *)p_extra;
 
@@ -8693,7 +8693,7 @@ void omx_vdec::handle_extradata_secure(OMX_BUFFERHEADERTYPE *p_buf_hdr)
           DEBUG_PRINT_ERROR(" \n Corrupt metadata Buffer size %d payload size %d",
                              p_extra->nSize, p_extra->nDataSize);
           p_extra = (OMX_OTHER_EXTRADATATYPE *) (((OMX_U8 *) p_extra) + p_extra->nSize);
-          if((OMX_U8*)p_extra > (meta_buffer_virtual + drv_ctx.op_buf.meta_buffer_size) ||
+          if((OMX_U8*)p_extra > (meta_buffer_virtual + drv_ctx.op_buf.buffer_size) ||
                         p_extra->nDataSize == 0 || p_extra->nSize == 0)
             p_extra = NULL;
           continue;
@@ -8758,7 +8758,7 @@ void omx_vdec::handle_extradata_secure(OMX_BUFFERHEADERTYPE *p_buf_hdr)
         print_debug_extradata(p_extra);
         p_extra = (OMX_OTHER_EXTRADATATYPE *) (((OMX_U8 *) p_extra) + p_extra->nSize);
 
-        if((OMX_U8*)p_extra > (meta_buffer_virtual + drv_ctx.op_buf.meta_buffer_size) ||
+        if((OMX_U8*)p_extra > (meta_buffer_virtual + drv_ctx.op_buf.buffer_size) ||
             p_extra->nDataSize == 0 || p_extra->nSize == 0)
           p_extra = NULL;
       }
@@ -8795,7 +8795,7 @@ void omx_vdec::handle_extradata_secure(OMX_BUFFERHEADERTYPE *p_buf_hdr)
       for(int i = 0; i < extn_user_data_cnt; i++)
       {
         if (((OMX_U8*)p_extra + p_extn_user[i]->nSize) <
-                          (meta_buffer_virtual + drv_ctx.op_buf.meta_buffer_size))
+                          (meta_buffer_virtual + drv_ctx.op_buf.buffer_size))
         {
           if (p_extn_user[i]->eType == VDEC_EXTRADATA_EXT_DATA)
           {
@@ -8812,7 +8812,7 @@ void omx_vdec::handle_extradata_secure(OMX_BUFFERHEADERTYPE *p_buf_hdr)
     }
     if ((client_extradata & OMX_INTERLACE_EXTRADATA) && p_extra &&
         ((OMX_U8*)p_extra + OMX_INTERLACE_EXTRADATA_SIZE) <
-         (meta_buffer_virtual + drv_ctx.op_buf.meta_buffer_size))
+         (meta_buffer_virtual + drv_ctx.op_buf.buffer_size))
     {
       p_buf_hdr->nFlags |= OMX_BUFFERFLAG_EXTRADATA;
       append_interlace_extradata(p_extra,
@@ -8821,7 +8821,7 @@ void omx_vdec::handle_extradata_secure(OMX_BUFFERHEADERTYPE *p_buf_hdr)
     }
     if (client_extradata & OMX_FRAMEINFO_EXTRADATA && p_extra &&
          ((OMX_U8*)p_extra + OMX_FRAMEINFO_EXTRADATA_SIZE) <
-         (meta_buffer_virtual + drv_ctx.op_buf.meta_buffer_size))
+         (meta_buffer_virtual + drv_ctx.op_buf.buffer_size))
     {
       p_buf_hdr->nFlags |= OMX_BUFFERFLAG_EXTRADATA;
       /* vui extra data (frame_rate) information */
@@ -8837,7 +8837,7 @@ void omx_vdec::handle_extradata_secure(OMX_BUFFERHEADERTYPE *p_buf_hdr)
     if ((client_extradata & OMX_PORTDEF_EXTRADATA) &&
          p_extra != NULL &&
         ((OMX_U8*)p_extra + OMX_PORTDEF_EXTRADATA_SIZE) <
-         (meta_buffer_virtual + drv_ctx.op_buf.meta_buffer_size))
+         (meta_buffer_virtual + drv_ctx.op_buf.buffer_size))
     {
       p_buf_hdr->nFlags |= OMX_BUFFERFLAG_EXTRADATA;
       append_portdef_extradata(p_extra);
@@ -8846,7 +8846,7 @@ void omx_vdec::handle_extradata_secure(OMX_BUFFERHEADERTYPE *p_buf_hdr)
     if (p_buf_hdr->nFlags & OMX_BUFFERFLAG_EXTRADATA)
       if (p_extra &&
         ((OMX_U8*)p_extra + OMX_FRAMEINFO_EXTRADATA_SIZE) <
-          (meta_buffer_virtual + drv_ctx.op_buf.meta_buffer_size))
+          (meta_buffer_virtual + drv_ctx.op_buf.buffer_size))
         append_terminator_extradata(p_extra);
       else
       {
@@ -9700,7 +9700,7 @@ OMX_ERRORTYPE omx_vdec::vdec_alloc_meta_buffers()
   memset ((unsigned char*)&meta_buffer,0,sizeof (struct vdec_meta_buffers));
 
   //we already have meta buffer size.
-  size = drv_ctx.op_buf.meta_buffer_size * drv_ctx.op_buf.actualcount;
+  size = drv_ctx.op_buf.buffer_size * drv_ctx.op_buf.actualcount;
   alignment = 8192;
 
 
